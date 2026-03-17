@@ -15,7 +15,7 @@ import os
 VECTOR_DB_PATH   = "./local_rag_db"    # 向量库保存位置
 # EMBEDDING_MODEL  = "BAAI/bge-small-zh-v1.5"  # 中文向量化模型
 EMBEDDING_MODEL  = "text2vec-base-chinese"  # 中文向量化模型
-LLM_MODEL        = "llama3.2:1b"       # 你要的模型
+LLM_MODEL        = "qwen:4b"       # 你要的模型
 
 # ===================== 【你的本地知识库】 =====================
 # 这里可以换成你的 PDF / Word / 文档
