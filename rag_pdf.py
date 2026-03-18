@@ -17,7 +17,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 VECTOR_DB_PATH = "./real_time_rag_db"
 DOCS_FOLDER = "./my_docs"  # 把文档放这里，自动实时更新
 EMBEDDING_MODEL = "BAAI/bge-small-zh-v1.5"
-LLM_MODEL = "llama3.2:1b"
+LLM_MODEL = "qwen:4b"
 
 # 自动创建文档目录
 os.makedirs(DOCS_FOLDER, exist_ok=True)
@@ -62,6 +62,9 @@ def load_single_file(file_path):
         return []
 # ===================== 首次启动加载所有文档 =====================
 def load_all_existing_files():
+    print("\n重建向量数据库")
+    vectordb = get_vector_db()
+    vectordb.delete_collection()  # 删除旧数据，重新构建
     print("\n📂 正在加载已有文档...")
     for f in os.listdir(DOCS_FOLDER):
         print(f"\n📂 正在加载已有文档：{f}")
@@ -121,7 +124,7 @@ def rag_ask(question):
 资料：
 {context}
 
-问题：{question
+问题：{question}
 回答：
 """
     res = ollama.generate(model=LLM_MODEL, prompt=prompt)
