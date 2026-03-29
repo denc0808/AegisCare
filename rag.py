@@ -117,7 +117,8 @@ def load_all_existing_files():
                 print(f"✅ 成功存入向量库：{f}，块数：{len(chunks)}")
 
         vectordb.persist()
-    except:
+    except Exception as e:
+        print("异常：", e)
         clear_db()
 
 # ===================== 增量添加到向量库（实时更新） =====================
