@@ -17,10 +17,9 @@ DOCS_FOLDER = "./my_docs"  # 把文档放这里，自动实时更新
 EMBEDDING_MODEL = "BAAI/bge-base-zh-v1.5"
 LLM_MODEL = "qwen:4b"
 
-API_MODEL = "Qwen/Qwen2.5-7B-Instruct"  # API模型
-API_KEY = "sk-zfchmunzqyczprffzpnrjayemtyarrghloihkwivpvzuukjr"
-API_URL = "https://api.siliconflow.cn/v1/chat/completions"
-
+API_MODEL = os.getenv("API_MODEL")  # API模型
+API_KEY = os.getenv("API_KEY")  # api key
+API_URL = os.getenv("API_URL")  # api url
 # 自动创建文档目录
 os.makedirs(DOCS_FOLDER, exist_ok=True)
 
@@ -197,7 +196,8 @@ def local_llm(prompt):
     try:
         res = ollama.generate(model=LLM_MODEL, prompt=prompt, options={"temperature": 0.1})
         return res.get("response", "本地模型失败")
-    except:
+    except Exception as e:
+        print("本地模型错误：", e)
         return "本地模型加载中，请稍候..."
 
 
