@@ -15,6 +15,9 @@ env/
 real_time_rag_db/
 my_docs/
 
+# 配置
+.env
+
 # 日志、临时文件
 logs/
 *.log
