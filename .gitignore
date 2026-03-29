@@ -1,2 +1,29 @@
 !/my_docs/
 !/.vscode/
+/real_time_rag_db/
+# Python 缓存
+__pycache__/
+*.py[cod]
+*.pyc
+
+# 虚拟环境
+venv/
+env/
+.venv/
+
+# 向量库（你最需要忽略的！）
+real_time_rag_db/
+
+# 日志、临时文件
+logs/
+*.log
+tmp/
+temp/
+
+# PyCharm 配置
+.idea/
+*.iml
+
+# 系统文件
+.DS_Store
+Thumbs.db

@@ -5,9 +5,12 @@
 # ==============================================
 import os
 import time
+
 from flask import Flask, render_template, request, jsonify
-from rag import get_vector_db, clear_db, load_all_existing_files,rag_ask,add_file_to_db
+from sympy import false
+
 from monitor import start_monitor
+from rag import get_vector_db, load_all_existing_files, rag_ask, add_file_to_db
 
 # ===================== 配置 =====================
 app = Flask(__name__, template_folder="static", static_folder="static")
@@ -22,9 +25,11 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 def index():
     return render_template('index.html')
 
+
 @app.route('/favicon.ico')
 def favicon():
     return "", 204
+
 
 @app.route('/api/chat', methods=['POST'])
 def chat():
@@ -32,10 +37,12 @@ def chat():
     question = request_data.get('question')
     return jsonify({"answer": rag_ask(question)})
 
+
 @app.route('/api/files')
 def list_files():
     files = os.listdir(app.config['UPLOAD_FOLDER'])
     return jsonify({"files": files})
+
 
 @app.route('/api/upload', methods=['POST'])
 def upload():
@@ -44,6 +51,7 @@ def upload():
     file.save(path)
     add_file_to_db(path)
     return jsonify({"status": "ok"})
+
 
 @app.route('/api/delete/<filename>')
 def delete_file(filename):
@@ -55,31 +63,34 @@ def delete_file(filename):
     except:
         return jsonify({"status": "error"})
 
+
 @app.route('/api/clear-db')
 def clear_database():
     db = get_vector_db()
     db.delete_collection()  # 删除整个集合，清空库
     return jsonify({"status": "ok"})
 
+
 @app.route('/api/init-db')
 def init_database():
     load_all_existing_files()
     return jsonify({"status": "ok"})
+
 
 # ===================== 【安全查看向量库内容】无报错版 =====================
 @app.route('/api/print-all-data')
 def print_all_data():
     try:
         db = get_vector_db()
-        
+
         # ✅ 只获取 文本、元数据，不获取向量（修复报错）
         all_data = db._collection.get(
             include=["documents", "metadatas"]
         )
 
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("📂 向量库 real_time_rag_db 真实内容")
-        print("="*60)
+        print("=" * 60)
 
         result = []
         for i in range(len(all_data["ids"])):
@@ -87,12 +98,12 @@ def print_all_data():
             meta = all_data["metadatas"][i]
             doc_id = all_data["ids"][i]
 
-            print(f"\n【第 {i+1} 条】")
+            print(f"\n【第 {i + 1} 条】")
             print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
             print(f"ID: {doc_id}")
             print(f"来源: {meta}")
             print(f"内容: {doc[:100]}...")
-            print("-"*50)
+            print("-" * 50)
 
             result.append({
                 "id": doc_id,
@@ -108,6 +119,8 @@ def print_all_data():
     except Exception as e:
         print("查看向量库错误：", e)
         return jsonify({"error": str(e)})
+
+
 # ===================== 启动 =====================
 if __name__ == '__main__':
     load_all_existing_files()
@@ -115,4 +128,4 @@ if __name__ == '__main__':
     print("=" * 60)
     print("    🌍 网页访问：http://127.0.0.1:8080")
     print("=" * 60)
-    app.run(host='0.0.0.0', port=8080, debug=True)
+    app.run(host='0.0.0.0', port=8080, debug=false, use_reloader=False)
