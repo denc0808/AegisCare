@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>本地 RAG 助手</title>
+    <script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="/static/app.js"></script>
+    <link rel="icon" href="/static/img.png" type="image/x-icon">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Segoe UI", "Roboto", sans-serif;
+        }
+
+        body {
+            background: #111827;
+            color: #e5e7eb;
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* 左侧侧边栏 */
+        .sidebar {
+            width: 260px;
+            background: #1f2937;
+            border-right: 1px solid #374151;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .sidebar h4 {
+            color: #fff;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .btn {
+            padding: 10px 12px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 14px;
+            transition: 0.2s;
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-info {
+            background: #2563eb;
+            color: white;
+        }
+
+        .btn-primary {
+            background: #2563eb;
+            color: white;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+        }
+
+        .file-list {
+            flex: 1;
+            overflow-y: auto;
+            background: #111827;
+            border-radius: 6px;
+            padding: 10px;
+            margin-top: 10px;
+        }
+
+        .file-item {
+            padding: 8px 10px;
+            border-radius: 6px;
+            background: #374151;
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+        }
+
+        /* 右侧聊天区域（GPT 样式） */
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            background: #111827;
+        }
+
+        .chat-header {
+            padding: 18px 24px;
+            background: #1f2937;
+            border-bottom: 1px solid #374151;
+            font-size: 18px;
+            font-weight: 500;
+            color: #fff;
+        }
+
+        /* 消息列表 */
+        .messages {
+            flex: 1;
+            padding: 40px 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        /* 机器人消息（左侧，灰色） */
+        .msg-bot {
+            align-self: flex-start;
+            background: #374151;
+            color: #e5e7eb;
+            padding: 14px 18px;
+            border-radius: 12px;
+            max-width: 85%;
+            line-height: 1.6;
+            font-size: 15px;
+        }
+
+        /* 用户消息（右侧，蓝色） */
+        .msg-user {
+            align-self: flex-end;
+            background: #2563eb;
+            color: white;
+            padding: 14px 18px;
+            border-radius: 12px;
+            max-width: 85%;
+            line-height: 1.6;
+            font-size: 15px;
+        }
+
+        /* 输入框区域 */
+        .input-wrapper {
+            padding: 20px;
+            background: #1f2937;
+            border-top: 1px solid #374151;
+        }
+
+        .input-box {
+            max-width: 800px;
+            margin: 0 auto;
+            display: flex;
+            gap: 10px;
+        }
+
+
+        #question {
+            flex: 1;
+            padding: 14px 18px;
+            border-radius: 8px;
+            border: none;
+            outline: none;
+            background: #374151;
+            color: #e5e7eb;
+            font-size: 15px;
+        }
+
+        #question::placeholder {
+            color: #9ca3af;
+        }
+
+        /* 向量库面板 */
+        .vector-panel {
+            margin-top: 15px;
+            background: #111827;
+            padding: 12px;
+            border-radius: 6px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-size: 12px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- 左侧栏 -->
+    <div class="sidebar">
+        <h4>📁 文档管理</h4>
+        <button class="btn btn-success" onclick="$('#file-input').click()">上传文档</button>
+        <button class="btn btn-danger" onclick="clearDB()">清空向量库</button>
+        <button class="btn btn-info" id="init-btn" onclick="initDB()">初始化向量库</button>
+        <button class="btn btn-info" onclick="openVectorModal()">查看向量库</button>
+        <input type="file" id="file-input" style="display:none" onchange="doUpload(event)">
+
+        <div class="file-list" id="file-list"></div>
+
+        <h4 style="margin-top:20px">😄 向量库状态</h4>
+        <div class="vector-panel" id="vectorList"></div>
+    </div>
+
+    <!-- 右侧聊天（GPT 布局） -->
+    <div class="chat-container">
+        <div class="chat-header">本地 RAG 智能助手</div>
+        <div class="messages" id="msg"></div>
+
+        <div class="input-wrapper">
+            <div class="input-box">
+                <input id="question" type="text" placeholder="输入问题...">
+                <button class="btn btn-primary" onclick="sendMsg()">发送</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 向量库弹窗 -->
+    <div id="vectorModal" style="display:none; position:fixed; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:9999;">
+        <div style="background:#1f2937; color:#fff; margin:5% auto; width:80%; padding:20px; border-radius:10px; max-height:80vh; overflow-y:auto;">
+            <h4>📊 向量库内容</h4>
+            <div id="vectorModalContent" style="margin-top:10px;"></div>
+            <button onclick="closeVectorModal()" style="margin-top:15px; padding:8px 12px; background:#2563eb; color:white; border:none; border-radius:6px; cursor:pointer;">关闭</button>
+        </div>
+    </div>
+
+</body>
+</html>
