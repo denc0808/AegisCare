@@ -1,12 +1,14 @@
-import os
-import requests
 import hashlib
-import ollama
+import os
 import shutil
+
+import ollama
+import requests
 from langchain_community.document_loaders import TextLoader, PyPDFLoader
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import Chroma
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+
 from router import need_rag_or_api
 
 # ===================== 配置 =====================
@@ -15,9 +17,9 @@ DOCS_FOLDER = "./my_docs"  # 把文档放这里，自动实时更新
 EMBEDDING_MODEL = "BAAI/bge-base-zh-v1.5"
 LLM_MODEL = "qwen:4b"
 
-API_MODEL = "Qwen/Qwen2.5-7B-Instruct"  # API模型
-API_KEY = "sk-zfchmunzqyczprffzpnrjayemtyarrghloihkwivpvzuukjr"
-API_URL = "https://api.siliconflow.cn/v1/chat/completions"
+API_MODEL = os.getenv("API_MODEL")  # API模型
+API_KEY = os.getenv("API_KEY")  # API
+API_URL = os.getenv("API_URL")  # API模型
 
 # 自动创建文档目录
 os.makedirs(DOCS_FOLDER, exist_ok=True)
@@ -26,11 +28,11 @@ os.makedirs(DOCS_FOLDER, exist_ok=True)
 embeddings = HuggingFaceEmbeddings(
     model_name=EMBEDDING_MODEL,
     model_kwargs={"device": "cpu"},
-    encode_kwargs={"normalize_embeddings": True}# 关键：提高检索精度
-      ) 
+    encode_kwargs={"normalize_embeddings": True}  # 关键：提高检索精度
+)
 splitter = RecursiveCharacterTextSplitter(
     chunk_size=512,  # 增大块大小，减少碎片化
-    chunk_overlap=64,   
+    chunk_overlap=64,
     separators=["\n\n", "\n", "。", "！", "？", ""]
 )
 
@@ -39,8 +41,8 @@ def get_vector_db():
     try:
         if os.path.exists(VECTOR_DB_PATH):
             return Chroma(
-                    embedding_function=embeddings,
-                    persist_directory=VECTOR_DB_PATH
+                embedding_function=embeddings,
+                persist_directory=VECTOR_DB_PATH
             )
         return Chroma(embedding_function=embeddings, persist_directory=VECTOR_DB_PATH)
     except:
@@ -50,13 +52,14 @@ def get_vector_db():
             embedding_function=embeddings,
             persist_directory=VECTOR_DB_PATH
         )
-    
+
 
 def clear_db():
     if os.path.exists(VECTOR_DB_PATH):
         shutil.rmtree(VECTOR_DB_PATH)
         return True
     return False
+
 
 # ===================== 加载单个文档（TXT/PDF） =====================
 def load_single_file(file_path):
@@ -71,14 +74,15 @@ def load_single_file(file_path):
             return []
 
         docs = loader.load()
-        print (f"✅ 成功加载文档：{os.path.basename(file_path)}，共 {len(docs)} 页")
+        print(f"✅ 成功加载文档：{os.path.basename(file_path)}，共 {len(docs)} 页")
         return splitter.split_documents(docs)
-    except Exception as e  :
+    except Exception as e:
         print("异常：", e)
-        print(f"❌ 加载文档失败：{os.path.basename(file_path)}，错误：{str(e)}")    
+        print(f"❌ 加载文档失败：{os.path.basename(file_path)}，错误：{str(e)}")
         print(f"⚠️ 无法处理文件：{file_path}，请确保是 PDF 或 TXT 格式")
         return []
-    
+
+
 def add_file_to_db(file_path):
     chunks = load_single_file(file_path)
     if not chunks:
@@ -100,6 +104,8 @@ def add_file_to_db(file_path):
     print(f"✅ 去重入库：{filename} | 块数：{len(chunks)}")
     print(f"✅ 已实时更新新文档：{os.path.basename(file_path)}")
     vectordb.persist()
+
+
 # ===================== 首次启动加载所有文档 =====================
 def load_all_existing_files():
     print("\n重建向量数据库")
@@ -121,6 +127,7 @@ def load_all_existing_files():
         print("异常：", e)
         clear_db()
 
+
 # ===================== 增量添加到向量库（实时更新） =====================
 # def add_file_to_db(file_path):
 #     chunks = load_single_file(file_path)
@@ -131,12 +138,10 @@ def load_all_existing_files():
 #     vectordb.add_documents(chunks)
 #     print(f"✅ 已实时更新新文档：{os.path.basename(file_path)}")
 #     vectordb.persist()
-    
-    
+
 
 # ===================== RAG 问答（永远用最新资料） =====================
 def rag_ask(question):
-
     if not question or not question.strip():
         return "请输入有效的问题。"
     use_api = need_rag_or_api(question)
@@ -156,7 +161,7 @@ def rag_ask(question):
 
     print("\n====== 系统找到的相关资料 ======")
     for i, d in enumerate(docs):
-        print(f"{i+1}. {d.page_content[:80]}...")
+        print(f"{i + 1}. {d.page_content[:80]}...")
     print("================================\n")
 
     # context = "\n".join([d.page_content for d in docs])
@@ -173,10 +178,10 @@ def rag_ask(question):
 
 问题：{question}
 回答：
-""" 
-    if  use_api:
+"""
+    if use_api:
         print("🤖 使用API模型（复杂问题）")
-        res =  api_llm(prompt)
+        res = api_llm(prompt)
     else:
         print("⚡ 使用本地模型（简单问题）")
         res = local_llm(prompt)
@@ -185,11 +190,11 @@ def rag_ask(question):
 
 def local_llm(prompt):
     try:
-        res = ollama.generate(model=LLM_MODEL, prompt=prompt,options={"temperature": 0.1})
+        res = ollama.generate(model=LLM_MODEL, prompt=prompt, options={"temperature": 0.1})
         return res.get("response", "本地模型失败")
     except:
         return "本地模型加载中，请稍候..."
-    
+
 
 def api_llm(prompt):
     try:
