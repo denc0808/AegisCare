@@ -13,6 +13,7 @@ env/
 
 # 向量库（你最需要忽略的！）
 real_time_rag_db/
+my_docs/
 
 # 日志、临时文件
 logs/
