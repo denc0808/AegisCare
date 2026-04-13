@@ -4,6 +4,8 @@ import shutil
 
 import ollama
 import requests
+from bs4 import BeautifulSoup
+from dotenv import load_dotenv
 from langchain_community.document_loaders import TextLoader, PyPDFLoader
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import Chroma
@@ -17,9 +19,13 @@ DOCS_FOLDER = "./my_docs"  # 把文档放这里，自动实时更新
 EMBEDDING_MODEL = "BAAI/bge-base-zh-v1.5"
 LLM_MODEL = "qwen:4b"
 
+load_dotenv(dotenv_path="./.env", verbose=True, override=True)
+
 API_MODEL = os.getenv("API_MODEL")  # API模型
 API_KEY = os.getenv("API_KEY")  # api key
-API_URL = os.getenv("API_URL")  # api url
+API_URL = os.getenv("API_URL")
+
+# api url  
 # 自动创建文档目录
 os.makedirs(DOCS_FOLDER, exist_ok=True)
 
@@ -143,6 +149,39 @@ def load_all_existing_files():
 #     print(f"✅ 已实时更新新文档：{os.path.basename(file_path)}")
 #     vectordb.persist()
 
+# ===================== 多引擎全网搜索（C 方案）=====================
+def search_web(query: str, engine="bing", max_results=3):
+    """
+    多引擎搜索：bing / baidu / google
+    返回最新实时信息
+    """
+    try:
+        headers = {"User-Agent": "Mozilla/5.0"}
+        results = []
+
+        if engine == "bing":
+            url = f"https://www.bing.com/search?q={query}"
+            res = requests.get(url, headers=headers, timeout=8)
+            soup = BeautifulSoup(res.text, "html.parser")
+            for g in soup.find_all("li", class_="b_algo")[:max_results]:
+                t = g.get_text(strip=True)
+                if t:
+                    results.append(t)
+
+        elif engine == "baidu":
+            url = f"https://www.baidu.com/s?wd={query}"
+            res = requests.get(url, headers=headers, timeout=8)
+            soup = BeautifulSoup(res.text, "html.parser")
+            for g in soup.find_all("div", class_="result-op")[:max_results]:
+                t = g.get_text(strip=True)
+                if t:
+                    results.append(t)
+
+        return "\n".join(results) if results else "无搜索结果"
+    except Exception as e:
+        print("搜索失败", e)
+        return "搜索失败"
+
 
 # ===================== RAG 问答（永远用最新资料） =====================
 def rag_ask(question):
@@ -175,6 +214,7 @@ def rag_ask(question):
     prompt = f"""
 你是一个严格的资料问答机器人，必须遵守以下所有规则：
 1. 只使用下面的【资料内容】回答，绝对不能使用外部知识。
+2. 如果有遇不确定的问题可以问我
 
 
 资料：
