@@ -10,7 +10,7 @@ from flask import Flask, render_template, request, jsonify
 from sympy import false
 
 from monitor import start_monitor
-from rag import get_vector_db, load_all_existing_files, rag_ask, add_file_to_db
+from rag import get_vector_db, load_all_existing_files, add_file_to_db, rag_answer
 
 # ===================== 配置 =====================
 app = Flask(__name__, template_folder="static", static_folder="static")
@@ -35,7 +35,8 @@ def favicon():
 def chat():
     request_data = request.get_json(force=True)
     question = request_data.get('question')
-    return jsonify({"answer": rag_ask(question)})
+    return jsonify({"answer": rag_answer(question)})
+    # return jsonify({"answer": rag_ask(question)})
 
 
 @app.route('/api/files')
