@@ -1,4 +1,3 @@
-import ollama
 
 
 LOCAL_MODEL = "qwen:4b"          # 本地模型
