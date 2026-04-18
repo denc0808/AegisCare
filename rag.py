@@ -337,8 +337,8 @@ def decide_strategy(state: MessagesState):
         # 🔥 关键修复：强制清洗模型输出，确保一定能解析JSON
         decision = decision.strip()
         # 尝试提取JSON
-        import re
-        json_match = re.search(r'\{.*\}', decision, re.DOTALL)
+
+        json_match = re.search(r'\{.*}', decision, re.DOTALL)
         if json_match:
             decision = json_match.group(0)
         # 测试解析
